@@ -1,0 +1,28 @@
+{
+    # disable admin port on localhost
+    admin off
+
+    # redirect manually
+    auto_https disable_redirects
+
+    # Prevent Caddy from polluting the local environment
+    skip_install_trust
+
+    default_sni netseclab1.inf.tu-dresden.de
+}
+
+# set the default behaviour for HTTP
+http:// {
+    redir https://{host}{uri} 308
+}
+
+# set the default behaviour for HTTPS
+https:// {
+    error 404
+}
+
+netseclab1.inf.tu-dresden.de {
+    encode zstd gzip
+    root * /srv/http
+    file_server
+}
