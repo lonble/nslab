@@ -4,7 +4,12 @@ We chose **Caddy** as our web server because of its clean configuration file, se
 
 ## Installation
 
+Because Grml uses a snapshot of Debian Testing as its source, and Caddy happened to be removed from Testing on the day that snapshot was taken, we cannot install Caddy directly via the apt command. Instead, we can add the first-party source first, and then install it using apt.
+
 ```sh
+curl -sL 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -sL 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' -o /etc/apt/sources.list.d/caddy-stable.list
+apt update
 apt install caddy
 ```
 
