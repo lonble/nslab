@@ -14,7 +14,7 @@ The only thing we need to make sure of is that **resolvconf** has been uninstall
 
 ## Configuration
 
-Just copy the *dnsmasq.conf* from the repo to `/etc/dnsmasq.conf`. Every configuration option is commented to explain its purpose.
+Just copy the *dnsmasq.conf* from the repo to `/etc/dnsmasq.conf`, and replace *\<lan\>* in the file with the LAN interface. Every configuration option is commented to explain its purpose.
 
 ## Starting
 
