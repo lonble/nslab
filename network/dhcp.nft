@@ -1,0 +1,6 @@
+table ip filter {
+    chain input {
+        # allow LAN clients to access DHCP service on the gateway
+        iifname $lan_if udp dport 67 accept
+    }
+}

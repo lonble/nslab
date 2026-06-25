@@ -1,0 +1,6 @@
+table ip filter {
+    chain input {
+        # allow LAN clients to access DNS service on the gateway
+        iifname $lan_if ip saddr $lan_net ip protocol { tcp, udp } th dport 53 accept
+    }
+}

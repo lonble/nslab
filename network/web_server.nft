@@ -1,0 +1,15 @@
+define web_server = 192.168.0.3
+
+table ip nat {
+    chain prerouting {
+        # port forwarding
+        ip daddr $wan_ip tcp dport { 80, 443 } dnat to $web_server
+        ip daddr $wan_ip udp dport 443 dnat to $web_server
+    }
+
+    chain postrouting {
+        # prevent Hairpin NAT when LAN clients access the web server via public IP address (domain name)
+        iifname $lan_if oifname $lan_if ip saddr $lan_net ip daddr $web_server tcp dport { 80, 443 } snat to $lan_ip
+        iifname $lan_if oifname $lan_if ip saddr $lan_net ip daddr $web_server udp dport 443 snat to $lan_ip
+    }
+}
