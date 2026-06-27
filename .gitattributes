@@ -1,0 +1,6 @@
+﻿* text=auto
+
+.gitattributes text eol=lf
+*.sh text eol=lf
+*.service text eol=lf
+*.md text eol=lf
