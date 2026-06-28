@@ -1,0 +1,16 @@
+table ip filter {
+    chain input {
+        udp dport 51820 accept
+        iifname $wan_if ip daddr $wan_ip udp dport 51820 accept
+    }
+
+    chain forward {
+        iifname "wg0" accept
+    }
+}
+
+table ip nat {
+    chain postrouting {
+        oifname $wan_if ip saddr 192.168.1.0/24 snat to $wan_ip
+    }
+}
