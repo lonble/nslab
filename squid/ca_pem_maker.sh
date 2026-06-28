@@ -4,5 +4,5 @@ openssl req -new -x509 -days 3650 -key squidCA.key -out squidCA.crt
 
 cat squidCA.key squidCA.crt > ca.pem
 
-sudo chmod 400 ca.pem
-sudo chown proxy:proxy ca.pem
+chmod 400 ca.pem
+chown proxy:proxy ca.pem
