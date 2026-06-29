@@ -1,53 +1,54 @@
 #!/bin/bash
 # ============================================================
 #  Lab Day — Backup Server Setup (run on 192.168.0.4 machine)
+#  Usage: ./setup-backup-server.sh <lan-interface>
 # ============================================================
 set -e
+
+LAN_IF="${1:?Usage: $0 <lan-interface>}"
 
 echo "=== Backup Server Setup ==="
 
 # Step 1: Static IP
-echo "[1/5] Configuring static IP (192.168.0.4)..."
-cat >> /etc/dhcpcd.conf << 'EOF'
-inform 192.168.0.4/24
-EOF
-
-LAN_IF="${1:?Usage: $0 <lan-interface>}"
-dhcpcd -k "$LAN_IF" 2>/dev/null || true
-dhcpcd "$LAN_IF"
-echo "       IP configured."
-
-# Step 2: Install restic (optional, for local management)
-echo "[2/5] Updating packages..."
-apt update -qq
-
-# Step 3: Download rest-server
-echo "[3/5] Installing rest-server..."
-ARCH=$(dpkg --print-architecture)
-# Try to download latest rest-server
-REST_URL="https://github.com/restic/rest-server/releases/download/v0.13.0/rest-server_0.13.0_linux_${ARCH}.tar.gz"
-if command -v wget &> /dev/null; then
-    wget -q "$REST_URL" -O /tmp/rest-server.tar.gz
+if ip addr show "$LAN_IF" | grep -q "192.168.0.4"; then
+    echo "[1/4] Static IP already configured, skipping."
 else
-    curl -sL "$REST_URL" -o /tmp/rest-server.tar.gz
+    echo "[1/4] Configuring static IP (192.168.0.4)..."
+    echo "inform 192.168.0.4/24" >> /etc/dhcpcd.conf
+    dhcpcd -k "$LAN_IF" 2>/dev/null
+    dhcpcd "$LAN_IF" 2>/dev/null || { echo "FAIL: Could not configure network."; exit 1; }
+    echo "       Done."
 fi
-tar xzf /tmp/rest-server.tar.gz -C /tmp/
-find /tmp -name 'rest-server' -type f -exec mv {} /usr/local/bin/rest-server \;
-chmod +x /usr/local/bin/rest-server
-echo "       rest-server installed."
 
-# Step 4: Create backup directory
-echo "[4/5] Creating backup storage directory..."
+# Step 2: Install rest-server
+if command -v rest-server &>/dev/null; then
+    echo "[2/4] rest-server already installed, skipping."
+else
+    echo "[2/4] Installing rest-server..."
+    ARCH=$(dpkg --print-architecture)
+    REST_URL="https://github.com/restic/rest-server/releases/download/v0.13.0/rest-server_0.13.0_linux_${ARCH}.tar.gz"
+    wget -q "$REST_URL" -O /tmp/rest-server.tar.gz || { echo "FAIL: Could not download rest-server."; exit 1; }
+    tar xzf /tmp/rest-server.tar.gz -C /tmp/
+    find /tmp -name 'rest-server' -type f -exec mv {} /usr/local/bin/rest-server \;
+    chmod +x /usr/local/bin/rest-server
+    echo "       Done."
+fi
+
+# Step 3: Create backup directory
+echo "[3/4] Setting up backup storage"
 mkdir -p /srv/backup
+chown -R backup:backup /srv/backup
 
-# Step 5: Install and start systemd service
-echo "[5/5] Starting rest-server (append-only mode)..."
+# Step 4: Install and start systemd service
+echo "[4/4] Starting rest-server (append-only mode)..."
 cat > /etc/systemd/system/rest-server.service << 'EOF'
 [Unit]
 Description=Restic REST Server (Append-Only)
 After=network.target
 
 [Service]
+User=backup
+Group=backup
 ExecStart=/usr/local/bin/rest-server --path /srv/backup --append-only --no-auth --listen :8000
 Restart=on-failure
 RestartSec=5
@@ -57,7 +58,7 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now rest-server.service
+systemctl enable --now rest-server.service || { echo "FAIL: Could not start rest-server."; exit 1; }
 
 echo ""
 echo "=== Backup Server is READY ==="

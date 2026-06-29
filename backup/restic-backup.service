@@ -1,0 +1,10 @@
+[Unit]
+Description=Restic Backup
+
+[Service]
+Type=oneshot
+User=backup
+Group=backup
+Environment="RESTIC_PASSWORD=lab-backup-2026"
+Environment="RESTIC_REPOSITORY=rest:http://192.168.0.4:8000/"
+ExecStart=/usr/bin/restic backup /srv/http --quiet
