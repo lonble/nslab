@@ -6,15 +6,7 @@ Since Snort is a passive libpcap listener and not an inline interceptor like Squ
 
 ## Installation
 
-Snort is no longer in current Debian repos. The assignment gives this workaround:
-
-```sh
-echo "deb http://http.us.debian.org/debian oldoldstable non-free contrib main" >> /etc/apt/sources.list
-apt update
-apt install snort
-```
-
-If this fails (`Unable to locate package snort`, or a mirror/DNS error), `oldoldstable` has likely drifted to a release that no longer has Snort. Use this instead, which points directly at Debian 10 (Buster), the last release with a real `snort` package:
+Snort is no longer in current Debian repos, and the assignment's suggested workaround (`oldoldstable`) no longer resolves to a release that has it — confirmed failing on the actual Grml image. Use this instead, which points directly at Debian 10 (Buster), the last release with a real `snort` package:
 
 ```sh
 echo "deb http://archive.debian.org/debian buster main contrib non-free" >> /etc/apt/sources.list
@@ -22,6 +14,18 @@ echo "deb http://archive.debian.org/debian-security buster/updates main contrib 
 apt-get -o Acquire::Check-Valid-Until=false update
 apt install snort
 ```
+
+Confirmed working on Grml, with one caveat: appending Buster directly to the main `sources.list` means *any* future `apt install`/`apt upgrade` on the gateway could pull in a Buster version of some other package by accident, which could break something a teammate is relying on. If there's time, pin it instead with a dedicated low-priority file rather than touching `sources.list` directly:
+
+```sh
+echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list.d/buster.list
+echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list.d/buster.list
+printf 'Package: *\nPin: release n=buster\nPin-Priority: 100\n' > /etc/apt/preferences.d/buster.pref
+apt-get -o Acquire::Check-Valid-Until=false update
+apt install -t buster snort
+```
+
+Either way — Snort itself is old, unmaintained upstream software. We don't have time to switch to something else, so once it's installed and validated, avoid running general `apt upgrade` on the gateway for the rest of the lab.
 
 During install, debconf asks for:
 - **Interface(s) to listen on**: \<lan\>
@@ -65,18 +69,16 @@ Should end with `Snort successfully validated the configuration!`. If you get `I
 
 ## Starting
 
-For the demo (console output):
+This install path doesn't ship a systemd service (confirmed on Grml), so run it directly, in the foreground, for the demo:
 ```sh
 snort -A console -q -i <lan> -c /etc/snort/snort.conf
 ```
 
-As a service instead:
+Leave this running in its own terminal/console for the duration of the demo. If you want it logging to a file instead of console:
 ```sh
-systemctl enable --now snort
-journalctl -u snort -f
+snort -D -i <lan> -c /etc/snort/snort.conf -l /var/log/snort
 ```
-
-Default alert log if not using console mode: `/var/log/snort/alert`.
+Alert log: `/var/log/snort/alert`.
 
 ## Demo
 
