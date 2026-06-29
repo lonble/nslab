@@ -42,6 +42,35 @@ rule-files:
 
 Copy *local.rules* to `/etc/suricata/rules/local.rules` (same file used for Snort — Suricata reads Snort rule syntax natively, no changes needed).
 
+
+## Configuring the interface
+
+If we're going to use the systemd service (`systemctl start suricata`), Suricata must know which interface to monitor. The service does **not** pass `-i <interface>` on the command line, so the interface must be configured in the `af-packet` section of `suricata.yaml`.
+
+First, identify the LAN interface:
+
+```sh
+ip addr
+```
+
+Look for the interface connected to our internal network (e.g. `192.168.0.0/24`).
+
+Then edit `/etc/suricata/suricata.yaml` and find the `af-packet:` section. It looks similar to:
+
+```yaml
+af-packet:
+  - interface: eth0
+```
+
+Replace the interface with our LAN interface, for example:
+
+```yaml
+af-packet:
+  - interface: eth1
+```
+
+If we're running Suricata manually using `-i <interface>`, this step isn't necessary because the command-line option overrides the configuration.
+
 ## Validating
 
 ```sh
@@ -58,22 +87,23 @@ Confirm it loads `local.rules` with no errors. If it complains a rule file doesn
 
 ## Running
 
-Suricata ships its own systemd service, so this is the simplest option:
+Using the systemd service:
 
 ```sh
 systemctl start suricata
 systemctl status suricata
 ```
 
-Under the hood this runs `/usr/bin/suricata -D --af-packet -c /etc/suricata/suricata.yaml --pidfile /var/run/suricata/suricata.pid` — daemonized, reading the same config file we just edited.
+This starts Suricata using the interface configured in the `af-packet` section of `/etc/suricata/suricata.yaml`.
 
-If you'd rather run it manually instead (e.g. to control the interface directly without editing the af-packet section of the yaml):
+If we'd rather run it manually instead (e.g. to specify the interface directly without editing the `af-packet` section):
 
 ```sh
 suricata -D -c /etc/suricata/suricata.yaml -i <lan>
 ```
 
 Either way, check it's running:
+
 ```sh
 ps aux | grep suricata
 ```
